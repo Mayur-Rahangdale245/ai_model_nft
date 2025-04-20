@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mint on Arbitrum</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+</head>
+<body>
+    <button id="connectWalletBtn">Connect Wallet</button>
+    <p id="walletInfo"></p>
+
+    <input id="tokenURIInput" type="text" placeholder="Enter Token URI" disabled />
+    <button id="mintModelBtn" disabled>Mint Model</button>
+
+    <p id="statusMessage" style="color: red;"></p>
+    <p id="successMessage" style="color: green;"></p>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let web3;
+            let userAccount;
+
+            const connectWalletBtn = document.getElementById('connectWalletBtn');
+            const walletInfo = document.getElementById('walletInfo');
+            const tokenURIInput = document.getElementById('tokenURIInput');
+            const mintModelBtn = document.getElementById('mintModelBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            async function switchToArbitrum() {
+                const ARBITRUM_CHAIN_ID = '0xa4b1'; // Arbitrum One
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: ARBITRUM_CHAIN_ID }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: ARBITRUM_CHAIN_ID,
+                                    chainName: 'Arbitrum One',
+                                    rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                                    nativeCurrency: {
+                                        name: 'Ether',
+                                        symbol: 'ETH',
+                                        decimals: 18,
+                                    },
+                                    blockExplorerUrls: ['https://arbiscan.io'],
+                                }],
+                            });
+                        } catch (addError) {
+                            console.error('Error adding Arbitrum:', addError);
+                        }
+                    } else {
+                        console.error('Error switching to Arbitrum:', switchError);
+                    }
+                }
+            }
+
+            connectWalletBtn.addEventListener('click', async () => {
+                if (typeof window.ethereum !== 'undefined') {
+                    web3 = new Web3(window.ethereum);
+                    try {
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        await switchToArbitrum();
+                        const accounts = await web3.eth.getAccounts();
+                        userAccount = accounts[0];
+                        connectWalletBtn.textContent = `Wallet Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
+                        walletInfo.textContent = `Connected to: ${userAccount}`;
+                        mintModelBtn.disabled = false;
+                        tokenURIInput.disabled = false;
+                        statusMessage.textContent = '';
+                        successMessage.textContent = '';
+                    } catch (error) {
+                        console.error(error);
+                        statusMessage.textContent = 'Error connecting wallet or switching network.';
+                    }
+                } else {
+                    alert('MetaMask is not installed or this page is not served over HTTPS.');
+                }
+            });
+
+            mintModelBtn.addEventListener('click', async () => {
+                const tokenURI = tokenURIInput.value;
+                if (web3 && userAccount && tokenURI) {
+                    const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";  // Your Arbitrum contract
+                    const contractABI = [ /* Your ABI here */ ];
+
+                    const contract = new web3.eth.Contract(contractABI, contractAddress);
+                    try {
+                        const result = await contract.methods.mintModel(tokenURI).send({ from: userAccount });
+                        console.log("Model Minted:", result);
+                        successMessage.textContent = `Model minted successfully! Tx hash: ${result.transactionHash}`;
+                        statusMessage.textContent = '';
+                    } catch (error) {
+                        console.error("Minting error:", error);
+                        statusMessage.textContent = 'Minting failed. Check console for details.';
+                    }
+                } else {
+                    statusMessage.textContent = 'Missing wallet or token URI.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
