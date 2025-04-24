@@ -6,26 +6,42 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(120deg, #e0f7fa, #fce4ec, #f3e5f5);
+            background-size: 300% 300%;
+            animation: gradientBG 12s ease infinite;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding: 50px 20px;
+            height: 100vh;
         }
 
-        h1 {
-            color: #333;
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .container {
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
+        }
+
+        h1 {
+            color: #2d2d2d;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            width: 60px;
+            margin-bottom: 15px;
         }
 
         button {
@@ -37,11 +53,13 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s ease;
+            width: 100%;
+            transition: transform 0.2s ease, background-color 0.3s ease;
         }
 
         button:hover {
             background-color: #1a54d7;
+            transform: scale(1.03);
         }
 
         button:disabled {
@@ -52,10 +70,16 @@
         input[type="text"] {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
+            margin: 10px 0 20px 0;
+            border-radius: 8px;
             border: 1px solid #ccc;
             font-size: 15px;
+        }
+
+        #walletInfo {
+            font-size: 14px;
+            color: #444;
+            margin: 10px 0;
         }
 
         #statusMessage {
@@ -68,21 +92,33 @@
             margin-top: 10px;
         }
 
-        #walletInfo {
-            font-size: 14px;
-            color: #555;
-            margin: 10px 0;
+        .loader {
+            display: none;
+            margin: 10px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2d72fc;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Mint Your Model</h1>
     <div class="container">
+        <img src="https://via.placeholder.com/60" alt="Logo" class="logo">
+        <h1>Mint Your Model</h1>
         <button id="connectWalletBtn">Connect Wallet</button>
         <p id="walletInfo"></p>
 
         <input id="tokenURIInput" type="text" placeholder="Enter Token URI" disabled />
         <button id="mintModelBtn" disabled>Mint Model</button>
+        <div class="loader" id="loader"></div>
 
         <p id="statusMessage"></p>
         <p id="successMessage"></p>
@@ -99,6 +135,7 @@
             const mintModelBtn = document.getElementById('mintModelBtn');
             const statusMessage = document.getElementById('statusMessage');
             const successMessage = document.getElementById('successMessage');
+            const loader = document.getElementById('loader');
 
             async function switchToArbitrum() {
                 const ARBITRUM_CHAIN_ID = '0xa4b1';
@@ -164,13 +201,17 @@
 
                     const contract = new web3.eth.Contract(contractABI, contractAddress);
                     try {
+                        loader.style.display = 'block';
+                        statusMessage.textContent = 'Minting in progress...';
                         const result = await contract.methods.mintModel(tokenURI).send({ from: userAccount });
                         console.log("Model Minted:", result);
-                        successMessage.textContent = `Minted! Tx: ${result.transactionHash}`;
+                        successMessage.textContent = `✅ Minted! Tx: ${result.transactionHash}`;
                         statusMessage.textContent = '';
                     } catch (error) {
                         console.error("Minting error:", error);
-                        statusMessage.textContent = 'Minting failed. Check console for details.';
+                        statusMessage.textContent = '❌ Minting failed. Check console for details.';
+                    } finally {
+                        loader.style.display = 'none';
                     }
                 } else {
                     statusMessage.textContent = 'Please connect wallet and enter Token URI.';
